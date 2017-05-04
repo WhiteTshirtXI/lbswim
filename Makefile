@@ -3,12 +3,13 @@
 #*****************************************************************
 
 COMP_SER = ifort
-FLAG_SER =-FR -O3 -ipo -no-prec-div -xHost  #Local machines
 FLAG_SER =-FR -O3
+FLAG_SER =-FR -O3 -ipo -no-prec-div -xHost  #Local machines
 
 COMP_PAR = mpif90
 FLAG_PAR = -FR -O3 -ipo -no-prec-div -xHost -DMPI -lmpi -lopen-rte -lopen-pal   # Local machines
-FLAG_PAR = -FR -O3 -DMPI 
+FLAG_PAR = -FR -O3 -DMPI #Minimal optimization
+FLAG_PAR = -FR -O3 -ipo -no-prec-div -xHost -DMPI -lmpi # Aurora
 
 OBJS_SER=lb_ser.o \
          swimmers_ser.o \
@@ -24,17 +25,17 @@ OBJS_PAR=lb_par.o \
          io_par.o \
          aux_par.o
           
-serial  : LBswim_ser.o $(OBJS_SER)
-	$(COMP_SER) $(FLAG_SER) -o LBswim.exe LBswim_ser.o $(OBJS_SER) 
+serial  : lbswim_ser.o $(OBJS_SER)
+	$(COMP_SER) $(FLAG_SER) -o lbswim.exe lbswim_ser.o $(OBJS_SER) 
 
-mpi     : LBswim_par.o $(OBJS_PAR)
-	$(COMP_PAR) $(FLAG_PAR) -o LBswim.exe LBswim_par.o $(OBJS_PAR) 
+mpi     : lbswim_par.o $(OBJS_PAR)
+	$(COMP_PAR) $(FLAG_PAR) -o lbswim.exe lbswim_par.o $(OBJS_PAR) 
 
 
-LBswim_ser.o : LBswim.F90 module_ser.o
-	$(COMP_SER) $(FLAG_SER) -o LBswim_ser.o -c LBswim.F90
-LBswim_par.o : LBswim.F90 module_par.o
-	$(COMP_PAR) $(FLAG_PAR) -o LBswim_par.o -c LBswim.F90
+lbswim_ser.o : lbswim.F90 module_ser.o
+	$(COMP_SER) $(FLAG_SER) -o lbswim_ser.o -c lbswim.F90
+lbswim_par.o : lbswim.F90 module_par.o
+	$(COMP_PAR) $(FLAG_PAR) -o lbswim_par.o -c lbswim.F90
 
 lb_ser.o : lb.F90 module_ser.o aux_ser.o
 	$(COMP_SER) $(FLAG_SER) -o lb_ser.o -c lb.F90

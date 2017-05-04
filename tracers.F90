@@ -16,7 +16,7 @@ subroutine InitTracers
    real(8)    :: Random
 
 #if defined (MPI)
-   call mpi_bcast(nTrac,1,mpi_integer4,rootid,mpi_comm_world,ierr)
+   call mpi_bcast(nTrac,1,mpi_integer4,rootid,comm,ierr)
 #endif
 
    if(nTrac <= 0) return
@@ -33,7 +33,7 @@ subroutine InitTracers
    end if
 
 #if defined (MPI)
-   call mpi_bcast(rtr(1:3,1:nSwim),3*nTrac,mpi_real8,rootid,mpi_comm_world,ierr)
+   call mpi_bcast(rtr(1:3,1:nSwim),3*nTrac,mpi_real8,rootid,comm,ierr)
 #endif
 
    str(1:3,1:nTrac) = rtr(1:3,1:nTrac)

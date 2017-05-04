@@ -16,10 +16,10 @@ subroutine InitLattice
    
 
 #if defined (MPI)
-   call mpi_bcast(nx,1,mpi_integer4,rootid,mpi_comm_world,ierr)
-   call mpi_bcast(ny,1,mpi_integer4,rootid,mpi_comm_world,ierr)
-   call mpi_bcast(nz,1,mpi_integer4,rootid,mpi_comm_world,ierr)
-   call mpi_bcast(eta,1,mpi_real8,rootid,mpi_comm_world,ierr)
+   call mpi_bcast(nx,1,mpi_integer4,rootid,comm,ierr)
+   call mpi_bcast(ny,1,mpi_integer4,rootid,comm,ierr)
+   call mpi_bcast(nz,1,mpi_integer4,rootid,comm,ierr)
+   call mpi_bcast(eta,1,mpi_real8,rootid,comm,ierr)
 #endif
 
    allocate(f(0:14,0:nx-1,0:ny-1,0:nz-1)) 
@@ -105,10 +105,10 @@ subroutine Collide
       end do
    end do
 #if defined (MPI)
-   call mpi_isend(f(0:14,0:nx-1,0:ny-1,zlow(myid)), 15*nx*ny,mpi_real8,cpudown,0,mpi_comm_world,sreq1,ierr)
-   call mpi_irecv(f(0:14,0:nx-1,0:ny-1,zlow(cpuup)),15*nx*ny,mpi_real8,cpuup,mpi_any_tag,mpi_comm_world,rreq1,ierr)
-   call mpi_isend(f(0:14,0:nx-1,0:ny-1,zupp(myid)),   15*nx*ny,mpi_real8,cpuup,0,mpi_comm_world,sreq2,ierr)
-   call mpi_irecv(f(0:14,0:nx-1,0:ny-1,zupp(cpudown)),15*nx*ny,mpi_real8,cpudown,mpi_any_tag,mpi_comm_world,rreq2,ierr)
+   call mpi_isend(f(0:14,0:nx-1,0:ny-1,zlow(myid)), 15*nx*ny,mpi_real8,cpudown,0,comm,sreq1,ierr)
+   call mpi_irecv(f(0:14,0:nx-1,0:ny-1,zlow(cpuup)),15*nx*ny,mpi_real8,cpuup,mpi_any_tag,comm,rreq1,ierr)
+   call mpi_isend(f(0:14,0:nx-1,0:ny-1,zupp(myid)),   15*nx*ny,mpi_real8,cpuup,0,comm,sreq2,ierr)
+   call mpi_irecv(f(0:14,0:nx-1,0:ny-1,zupp(cpudown)),15*nx*ny,mpi_real8,cpudown,mpi_any_tag,comm,rreq2,ierr)
    call mpi_wait(sreq1,istatus,ierr)
    call mpi_wait(rreq1,istatus,ierr)
    call mpi_wait(sreq2,istatus,ierr)
@@ -174,7 +174,7 @@ subroutine UpdateHydroVars
    end do
 
 #if defined (MPI)
-   call mpi_allgatherv(u(1:3,0:nx-1,0:ny-1,zlow(myid):zupp(myid)),3*nx*ny*zlen(myid),mpi_real8,help(1:3,0:nx-1,0:ny-1,0:nz-1),3*nx*ny*zlen(0:nproc-1),3*nx*ny*zlow(0:nproc-1),mpi_real8,mpi_comm_world,ierr)
+   call mpi_allgatherv(u(1:3,0:nx-1,0:ny-1,zlow(myid):zupp(myid)),3*nx*ny*zlen(myid),mpi_real8,help(1:3,0:nx-1,0:ny-1,0:nz-1),3*nx*ny*zlen(0:nproc-1),3*nx*ny*zlow(0:nproc-1),mpi_real8,comm,ierr)
    u(1:3,0:nx-1,0:ny-1,0:nz-1) = help(1:3,0:nx-1,0:ny-1,0:nz-1)
 #endif
 
@@ -211,17 +211,17 @@ subroutine UpdateForces
    end do
 
 #if defined (MPI)
-   call mpi_allreduce(force(1:3,0:nx-1,0:ny-1,0:nz-1),help(1:3,0:nx-1,0:ny-1,0:nz-1),3*nx*ny*nz,mpi_real8,mpi_sum,mpi_comm_world,ierr)
+   call mpi_allreduce(force(1:3,0:nx-1,0:ny-1,0:nz-1),help(1:3,0:nx-1,0:ny-1,0:nz-1),3*nx*ny*nz,mpi_real8,mpi_sum,comm,ierr)
    force(1:3,0:nx-1,0:ny-1,zlow(myid):zupp(myid)) = help(1:3,0:nx-1,0:ny-1,zlow(myid):zupp(myid))
 #endif
 
-!  call mpi_reduce(force(1:3,0:nx-1,0:ny-1,0:nz-1),help(1:3,0:nx-1,0:ny-1,0:nz-1),3*nx*ny*nz,mpi_real8,mpi_sum,rootid,mpi_comm_world,ierr)
+!  call mpi_reduce(force(1:3,0:nx-1,0:ny-1,0:nz-1),help(1:3,0:nx-1,0:ny-1,0:nz-1),3*nx*ny*nz,mpi_real8,mpi_sum,rootid,comm,ierr)
 !  if(master) force(1:3,0:nx-1,0:ny-1,zlow(myid):zupp(myid)) = help(1:3,0:nx-1,0:ny-1,zlow(myid):zupp(myid))
 
 !  do i = 0, nproc-1
 !     if(i == rootid) cycle
-!     if(master)    call mpi_isend(help(1:3,0:nx-1,0:ny-1,zlow(i):zupp(i)),3*nx*ny*zlen(i),mpi_real8,i,i,mpi_comm_world,sreq,ierr)
-!     if(i == myid) call mpi_irecv(force(1:3,0:nx-1,0:ny-1,zlow(myid):zupp(myid)),3*nx*ny*zlen(myid),mpi_real8,rootid,myid,mpi_comm_world,rreq,ierr)
+!     if(master)    call mpi_isend(help(1:3,0:nx-1,0:ny-1,zlow(i):zupp(i)),3*nx*ny*zlen(i),mpi_real8,i,i,comm,sreq,ierr)
+!     if(i == myid) call mpi_irecv(force(1:3,0:nx-1,0:ny-1,zlow(myid):zupp(myid)),3*nx*ny*zlen(myid),mpi_real8,rootid,myid,comm,rreq,ierr)
 !     if(master) call mpi_wait(sreq,istatus,ierr)
 !     if(i == myid) call mpi_wait(rreq,istatus,ierr)
 !     print*, i, myid, sreq, rreq

@@ -17,15 +17,15 @@ subroutine InitSwimmers
    real(8)    :: Random
  
 #if defined (MPI)
-   call mpi_bcast(nSwim,1,mpi_integer4,rootid,mpi_comm_world,ierr)
-   call mpi_bcast(l,1,mpi_real8,rootid,mpi_comm_world,ierr)
-   call mpi_bcast(fswim,1,mpi_real8,rootid,mpi_comm_world,ierr)
-   call mpi_bcast(vswim,1,mpi_real8,rootid,mpi_comm_world,ierr)
-   call mpi_bcast(lambda,1,mpi_real8,rootid,mpi_comm_world,ierr)
-   call mpi_bcast(ltumbles,1,mpi_logical,rootid,mpi_comm_world,ierr)
-   call mpi_bcast(lswims,1,mpi_logical,rootid,mpi_comm_world,ierr)
-   call mpi_bcast(ladvects,1,mpi_logical,rootid,mpi_comm_world,ierr)
-   call mpi_bcast(lrotates,1,mpi_logical,rootid,mpi_comm_world,ierr)
+   call mpi_bcast(nSwim,1,mpi_integer4,rootid,comm,ierr)
+   call mpi_bcast(l,1,mpi_real8,rootid,comm,ierr)
+   call mpi_bcast(fswim,1,mpi_real8,rootid,comm,ierr)
+   call mpi_bcast(vswim,1,mpi_real8,rootid,comm,ierr)
+   call mpi_bcast(lambda,1,mpi_real8,rootid,comm,ierr)
+   call mpi_bcast(ltumbles,1,mpi_logical,rootid,comm,ierr)
+   call mpi_bcast(lswims,1,mpi_logical,rootid,comm,ierr)
+   call mpi_bcast(ladvects,1,mpi_logical,rootid,comm,ierr)
+   call mpi_bcast(lrotates,1,mpi_logical,rootid,comm,ierr)
 #endif
 
 !  fswim = 6*Pi*eta*a*vswim
@@ -51,8 +51,8 @@ subroutine InitSwimmers
    end if
 
 #if defined (MPI)
-   call mpi_bcast(r(1:3,1:nSwim),3*nSwim,mpi_real8,rootid,mpi_comm_world,ierr)
-   call mpi_bcast(n(1:3,1:nSwim),3*nSwim,mpi_real8,rootid,mpi_comm_world,ierr)
+   call mpi_bcast(r(1:3,1:nSwim),3*nSwim,mpi_real8,rootid,comm,ierr)
+   call mpi_bcast(n(1:3,1:nSwim),3*nSwim,mpi_real8,rootid,comm,ierr)
 #endif
 
 end subroutine
