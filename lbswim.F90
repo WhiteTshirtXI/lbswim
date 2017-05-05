@@ -31,8 +31,8 @@ program LBSwim
    implicit none
 
    real(8) :: usq, starttime, endtime, interval, tdump
-   integer(4) :: uin, uout, istep, ierr, i 
-   character(30) :: fin, fout
+   integer(4) :: uin, uout, ulog, istep, ierr, i 
+   character(30) :: fin, fout, flog
    logical :: lexists
 
 #if defined (MPI)
@@ -66,12 +66,15 @@ program LBSwim
  
    uin   = 1
    uout  = 2
+   ulog  = 3
    fin   = "lb.in"
+   flog  = "lb.log"
    interval = 3600.0d0
    startstep = 1
 
 ! .. open units
    if(master) open(uin, file = fin)
+   if(master) open(ulog, file = flog)
 
    if(master) read(uin,nmlRun)
 #if defined (MPI)
@@ -99,6 +102,8 @@ program LBSwim
    call mpi_bcast(lrestore,1,mpi_logical,rootid,comm,ierr)
 #endif
 
+   if(master) close(uin)
+
    inquire(file='checkpoint.out',exist=lexists) 
    if(lrestore .and. lexists) call RestoreFromCP
 
@@ -115,13 +120,12 @@ program LBSwim
       if(mod(istep,idump) == 0) then
          call DoDump(uout,istep)
          usq = sum(u(1:3,0:nx-1,0:ny-1,0:nz-1)**2)/(nx*ny*nz)
-         if(master) write(*,'(i8,es20.10)') istep, dsqrt(usq)/vswim
+         if(master) write(ulog,'(i8,es20.10)') istep, dsqrt(usq)/vswim
+         flush(ulog)
       end if
       call Checkpoint(tdump,interval,istep+1)
    end do
 
-   if(master) close(uin)
-   if(master) close(uout)
 
 #if defined (MPI)
    if(master) endtime = mpi_wtime()
@@ -129,7 +133,9 @@ program LBSwim
    call cpu_time(endtime) 
 #endif 
 
-   if(master) write(*,'(a20,f15.3)'), trim('Execution time (s):'), endtime-starttime
+   if(master) write(ulog,'(a16,i4)'), trim('Number of tasks:'), nproc
+   if(master) write(ulog,'(a19,f15.3)'), trim('Execution time (s):'), endtime-starttime
+   if(master) close(ulog)
 
 #if defined (MPI)
    call mpi_finalize(ierr)

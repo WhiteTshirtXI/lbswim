@@ -16,7 +16,9 @@ module LBModule
    real(8), parameter :: Pi = 4.0d0*datan(1.0d0) 
    integer(4), parameter :: mnproc = 20             ! Maximum number of processes
    integer(4), parameter :: rootid = 0
+#if defined (MPI)
    integer(4), parameter :: comm = mpi_comm_world
+#endif
    
    integer(4) :: nproc                                ! Number of MPI processes
    integer(4) :: myid                                 ! Process ID

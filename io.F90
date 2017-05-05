@@ -184,14 +184,12 @@ subroutine Checkpoint(tdump,interval,step)
    if(lCP) then
       call DoCP(step)
       if(master) tdump = mpi_wtime()
-      if(master) write(*,*) "Checkpointing"
    end if
 #else 
    call cpu_time(t0)
    if(t0-tdump > interval) then
       call DoCP(step)
       call cpu_time(tdump)
-      write(*,*) "Checkpointing"
    end if
 #endif      
   
