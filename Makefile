@@ -27,10 +27,10 @@ OBJS_PAR=lb_par.o \
          aux_par.o
           
 serial  : lbswim_ser.o $(OBJS_SER)
-	$(COMP_SER) $(FLAG_SER) -o lbswim.exe lbswim_ser.o $(OBJS_SER) 
+	$(COMP_SER) $(FLAG_SER) -o lbswim_ser.exe lbswim_ser.o $(OBJS_SER) 
 
 mpi     : lbswim_par.o $(OBJS_PAR)
-	$(COMP_PAR) $(FLAG_PAR) -o lbswim.exe lbswim_par.o $(OBJS_PAR) 
+	$(COMP_PAR) $(FLAG_PAR) -o lbswim_par.exe lbswim_par.o $(OBJS_PAR) 
 
 
 lbswim_ser.o : lbswim.F90 module_ser.o
