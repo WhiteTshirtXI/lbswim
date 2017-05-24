@@ -90,9 +90,9 @@ subroutine UpdateSwimmers
       end if
 
       r(1:3,i) = r(1:3,i) + rdot(1:3)  
-      r(1,i) = r(1,i) - int(r(1,i)/nx)*nx         ! ... PBCs - box going from 0 to nx
-      r(2,i) = r(2,i) - int(r(2,i)/ny)*ny
-      r(3,i) = r(3,i) - int(r(3,i)/nz)*nz
+      r(1,i) = r(1,i) - floor(r(1,i)/nx)*nx         ! ... PBCs - box going from 0 to nx
+      r(2,i) = r(2,i) - floor(r(2,i)/ny)*ny
+      r(3,i) = r(3,i) - floor(r(3,i)/nz)*nz
 
       tumble = Random(iseed)
       if(ltumbles .and. (tumble < tumbleProb)) then     ! ... Tumble with probability tumbleProb

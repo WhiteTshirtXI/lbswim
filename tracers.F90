@@ -63,9 +63,9 @@ subroutine UpdateTracers
    do i = trlow(myid), trupp(myid)
       call velocity(rtr(1:3,i),rdot)
       rtr(1:3,i) = rtr(1:3,i) + rdot(1:3)  
-      rtr(1,i) = rtr(1,i) - int(r(1,i)/nx)*nx         ! ... PBCs - box going from 0 to nx
-      rtr(2,i) = rtr(2,i) - int(r(2,i)/ny)*ny
-      rtr(3,i) = rtr(3,i) - int(r(3,i)/nz)*nz
+      rtr(1,i) = rtr(1,i) - floor(rtr(1,i)/nx)*nx         ! ... PBCs - box going from 0 to nx
+      rtr(2,i) = rtr(2,i) - floor(rtr(2,i)/ny)*ny
+      rtr(3,i) = rtr(3,i) - floor(rtr(3,i)/nz)*nz
       str(1:3,i) = str(1:3,i) + rdot(1:3)  
    end do
 
