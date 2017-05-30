@@ -13,7 +13,7 @@ subroutine InitTracers
    implicit none
 
    integer(4) :: i, ierr
-   real(8)    :: Random
+   real(8)    :: ran(3)
 
 #if defined (MPI)
    call mpi_bcast(nTrac,1,mpi_integer4,rootid,comm,ierr)
@@ -26,9 +26,10 @@ subroutine InitTracers
 
    if(master) then                           ! ... Let master do everything
       do i = 1, nTrac
-         rtr(1,i) = Random(iseed)*nx           ! ... Swimmer domain is bounded by (0,nx)
-         rtr(2,i) = Random(iseed)*ny 
-         rtr(3,i) = Random(iseed)*nz
+         call random_number(ran)
+         rtr(1,i) = ran(1)*nx           ! ... Swimmer domain is bounded by (0,nx)
+         rtr(2,i) = ran(2)*ny 
+         rtr(3,i) = ran(3)*nz
       end do
    end if
 

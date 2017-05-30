@@ -31,7 +31,7 @@ program LBSwim
    implicit none
 
    real(8) :: usq, starttime, endtime, interval, tdump
-   integer(4) :: uin, uout, ulog, istep, ierr, i 
+   integer(4) :: uin, uout, ulog, istep, ierr, i, seed(1) 
    character(30) :: fin, fout, flog
    logical :: lexists
 
@@ -82,6 +82,8 @@ program LBSwim
    call mpi_bcast(iseed,1,mpi_integer4,rootid,comm,ierr)
 #endif
    iseed = iseed + myid          ! ... Ensure each process has its own random seed
+   seed(1) = iseed
+   call random_seed(PUT=seed)
 
    if(master) read(uin,nmlLB)
    call InitLattice

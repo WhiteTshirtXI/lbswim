@@ -13,8 +13,7 @@ subroutine InitSwimmers
    implicit none
 
    integer(4) :: i, ierr, buflen
-   real(8)    :: ori(3), nsq
-   real(8)    :: Random
+   real(8)    :: ori(3), nsq, ran(3)
  
 #if defined (MPI)
    call mpi_bcast(nSwim,1,mpi_integer4,rootid,comm,ierr)
@@ -38,13 +37,16 @@ subroutine InitSwimmers
 
    if(master) then                           ! ... Let master do everything
       do i = 1, nSwim
-         r(1,i) = Random(iseed)*nx           ! ... Swimmer domain is bounded by (0,nx)
-         r(2,i) = Random(iseed)*ny 
-         r(3,i) = Random(iseed)*nz
+         call random_number(ran)
+         r(1,i) = ran(1)*nx                  ! ... Swimmer domain is bounded by (0,nx)
+         r(2,i) = ran(2)*ny           
+         r(3,i) = ran(3)*nz           
 
-         ori(1) = Random(iseed)-0.5d0
-         ori(2) = Random(iseed)-0.5d0
-         ori(3) = Random(iseed)-0.5d0
+         call random_number(ran)
+         ori(1) = ran(1)-0.5d0
+         ori(2) = ran(2)-0.5d0
+         ori(3) = ran(3)-0.5d0
+
          nsq = ori(1)**2 + ori(2)**2 + ori(3)**2
          n(1:3,i) = ori(1:3)/sqrt(nsq)
       end do
@@ -74,8 +76,7 @@ subroutine UpdateSwimmers
    integer(4) :: i
 
    real(8) :: rdot(3), ndot(3), vplus(3), vminus(3), rminus(3), norm
-   real(8) :: tumble, ori(3), nsq
-   real(8) :: Random 
+   real(8) :: tumble, ori(3), ran(3), nsq
  
    do i = iplow(myid), ipupp(myid)
 
@@ -94,11 +95,12 @@ subroutine UpdateSwimmers
       r(2,i) = r(2,i) - floor(r(2,i)/ny)*ny
       r(3,i) = r(3,i) - floor(r(3,i)/nz)*nz
 
-      tumble = Random(iseed)
+      call random_number(tumble)
       if(ltumbles .and. (tumble < tumbleProb)) then     ! ... Tumble with probability tumbleProb
-         ori(1) = Random(iseed)-0.5d0
-         ori(2) = Random(iseed)-0.5d0
-         ori(3) = Random(iseed)-0.5d0
+         call random_number(ran)
+         ori(1) = ran(1)-0.5d0
+         ori(2) = ran(2)-0.5d0
+         ori(3) = ran(3)-0.5d0
          nsq = ori(1)**2 + ori(2)**2 + ori(3)**2
          n(1:3,i) = ori(1:3)/sqrt(nsq) 
       else if(lrotates) then                            ! ... Otherwise just rotate with the flow
