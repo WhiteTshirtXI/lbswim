@@ -7,11 +7,6 @@
 !**  Lund University                                                   **
 !**  Sweden                                                            **
 !**                                                                    **
-!**  All rights reserved. The code may not be modified or              **
-!**  redistributed without the written conscent of the copyright       **
-!**  owner. The copyright owner does not take any responsibility       **
-!**  for any error in the code or its documentation.                   **
-!**                                                                    **
 !************************************************************************
 !************************************************************************
 
@@ -31,9 +26,9 @@ program LBSwim
    implicit none
 
    real(8) :: usq, starttime, endtime, interval, tdump
-   integer(4) :: uin, uout, ulog, istep, ierr, i, seed(1) 
-   character(30) :: fin, fout, flog
-   logical :: lexists
+   integer(4) :: uin, uout, ulog, istep, ierr, i, ran_seed(1) 
+   character(40) :: fin, fout, flog, basename, txpath
+   logical :: lexists, lmakedir
 
 #if defined (MPI)
    call mpi_init(ierr)
@@ -53,7 +48,6 @@ program LBSwim
    call cpu_time(starttime) 
 #endif  
 
-
    namelist /nmlRun/ nstep, iseed
 
    namelist /nmlLB/ nx, ny, nz, eta
@@ -64,13 +58,21 @@ program LBSwim
 
    namelist /nmlIO/ idump, ldumpswim, ldumplat, lformatted, lrestore
  
+   call get_command_argument(1,basename)
+   if (len_trim(basename) == 0) then
+      write(*,*) "ERROR! Syntax: program name + project name"
+      stop
+   end if
    uin   = 1
    uout  = 2
    ulog  = 3
-   fin   = "lb.in"
-   flog  = "lb.log"
-   interval = 3600.0d0
+   fin   = trim(basename)//'.in'
+   flog  = trim(basename)//'.log'
+   txpath = trim(basename)//'.out'
+   interval = 3600.0d0  ! ... Checkpointing interval (seconds)
    startstep = 1
+
+   lmakedir = makedirqq(txpath)
 
 ! .. open units
    if(master) open(uin, file = fin)
@@ -82,8 +84,8 @@ program LBSwim
    call mpi_bcast(iseed,1,mpi_integer4,rootid,comm,ierr)
 #endif
    iseed = iseed + myid          ! ... Ensure each process has its own random seed
-   seed(1) = iseed
-   call random_seed(PUT=seed)
+   ran_seed(1) = iseed
+   call random_seed(PUT=ran_seed)
 
    if(master) read(uin,nmlLB)
    call InitLattice
@@ -120,7 +122,7 @@ program LBSwim
       call UpdateSwimmers
       call UpdateTracers
       if(mod(istep,idump) == 0) then
-         call DoDump(uout,istep)
+         call DoDump(uout,txpath,istep)
          usq = sum(u(1:3,0:nx-1,0:ny-1,0:nz-1)**2)/(nx*ny*nz)
          if(master) write(ulog,'(i8,es20.10)') istep, dsqrt(usq)/vswim
          flush(ulog)

@@ -8,6 +8,7 @@
 
 module LBModule
 
+   use ifport
 #if defined (MPI)
    use mpi
 #endif
@@ -44,8 +45,6 @@ module LBModule
    real(8)    :: vswim                            ! Swim speed
    real(8)    :: fswim                            ! Swimmer force
    real(8)    :: l                                ! Swimmer length
-!  real(8)    :: a                                ! Swimmer body radius
-!  real(8)    :: h                                ! Correction to hydrodynamic radius
    real(8)    :: lambda                           ! Run length
    real(8)    :: tumbleProb                       ! Tumble rate = vswim/lambda
 

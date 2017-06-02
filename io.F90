@@ -45,14 +45,15 @@ end subroutine
 
 ! ... Dump data to disk
 
-subroutine DoDump(unit,step)
+subroutine DoDump(unit,path,step)
 
    use LBModule
   
    implicit none
 
    integer(4), intent(in) :: unit, step
-   character(40) :: root, outfile, txformat, txifile
+   character(40), intent(in) :: path
+   character(50) :: root, outfile, txformat, txifile
    integer(4) :: i, j, k, ierr
 
 #if defined (MPI)
@@ -74,27 +75,27 @@ subroutine DoDump(unit,step)
    if(step < 10) then
       txformat = '(i1)'
       write(txifile,txformat) step
-      root  = './'//'00000'//trim(txifile)
+      root  = trim(path)//'/00000'//trim(txifile)
    else if(step < 100) then
       txformat = '(i2)'
       write(txifile,txformat) step
-      root  = './'//'0000'//trim(txifile)
+      root  = trim(path)//'/0000'//trim(txifile)
    else if(step < 1000) then
       txformat = '(i3)'
       write(txifile,txformat) step
-      root = './'//'000'//trim(txifile)
+      root = trim(path)//'/000'//trim(txifile)
    else if(step < 10000) then
       txformat = '(i4)'
       write(txifile,txformat) step
-      root = './'//'00'//trim(txifile)
+      root = trim(path)//'/00'//trim(txifile)
    else if(step < 100000) then
       txformat = '(i5)'
       write(txifile,txformat) step
-      root = './'//'0'//trim(txifile)
+      root = trim(path)//'/0'//trim(txifile)
    else if(step < 1000000) then
       txformat = '(i6)'
       write(txifile,txformat) step
-      root = './'//trim(txifile)
+      root = trim(path)//'/'//trim(txifile)
    else 
       write(*,*) "nstep too big"
       stop
