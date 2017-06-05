@@ -26,7 +26,7 @@ program LBSwim
    implicit none
 
    real(8) :: usq, starttime, endtime, interval, tdump, elapsed, rate
-   integer(4) :: uin, uout, ulog, istep, ierr, i, ran_seed(2), istart, iend 
+   integer(4) :: uin, uout, ulog, istep, ierr, i, ran_seed(2), istart, iend, buflen 
    character(40) :: fin, fout, flog, fchk, basename, txpath
    logical :: lexists, lmakedir
 
@@ -47,6 +47,10 @@ program LBSwim
    master = .true.
    call system_clock(istart) 
 #endif  
+   cpudown = myid-1
+   if(myid == 0) cpudown = nproc-1
+   cpuup = myid+1
+   if(myid == nproc-1) cpuup = 0
 
    namelist /nmlRun/ nstep, iseed
 
@@ -105,6 +109,9 @@ program LBSwim
    if(master) read(uin,nmlTracers)
    call InitTracers
 
+   buflen = max(nSwim,nTrac) 
+   allocate(rbuf(1:3,buflen)) 
+
    if(master) read(uin,nmlIO)
 #if defined (MPI)
    call mpi_bcast(idump,1,mpi_integer4,rootid,comm,ierr)
@@ -118,8 +125,6 @@ program LBSwim
 
    inquire(file=fchk,exist=lexists) 
    if(lrestore .and. lexists) call RestoreFromCP(fchk)
-
-   call InitParallel
 
    if(master) tdump = starttime
    do istep = startstep, nstep

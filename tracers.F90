@@ -24,6 +24,12 @@ subroutine InitTracers
    allocate(rtr(1:3,1:nTrac)) 
    allocate(str(1:3,1:nTrac)) 
 
+   do i = 0, nproc-1
+      trlow(i) = i*nTrac/nproc + 1
+      trupp(i) = (i+1)*nTrac/nproc
+      trlen(i) = trupp(i)-trlow(i)+1
+   end do
+
    if(master) then                           ! ... Let master do everything
       do i = 1, nTrac
          call random_number(fran)

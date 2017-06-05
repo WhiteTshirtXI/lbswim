@@ -22,7 +22,13 @@ subroutine InitLattice
    call mpi_bcast(eta,1,mpi_real8,rootid,comm,ierr)
 #endif
 
-   allocate(f(0:14,0:nx-1,0:ny-1,0:nz-1)) 
+   do i = 0, nproc-1
+      zlow(i) = i*nz/nproc
+      zupp(i) = (i+1)*nz/nproc-1
+      zlen(i) = zupp(i)-zlow(i)+1
+   end do
+
+   allocate(f(0:14,0:nx-1,0:ny-1,0:nz-1))
    allocate(force(1:3,0:nx-1,0:ny-1,0:nz-1)) 
    allocate(u(1:3,0:nx-1,0:ny-1,0:nz-1)) 
    allocate(rho(0:nx-1,0:ny-1,0:nz-1)) 

@@ -12,7 +12,7 @@ subroutine InitSwimmers
 
    implicit none
 
-   integer(4) :: i, ierr, buflen 
+   integer(4) :: i, ierr 
    real(8)    :: ori(3), nsq, fran(3)
  
 #if defined (MPI)
@@ -32,8 +32,11 @@ subroutine InitSwimmers
 
    allocate(r(1:3,1:nSwim)) 
    allocate(n(1:3,1:nSwim)) 
-   buflen = max(nSwim,nTrac) 
-   allocate(rbuf(1:3,buflen)) 
+   do i = 0, nproc-1
+      iplow(i) = i*nSwim/nproc + 1
+      ipupp(i) = (i+1)*nSwim/nproc
+      iplen(i) = ipupp(i)-iplow(i)+1
+   end do
 
    if(master) then                           ! ... Let master do everything
       do i = 1, nSwim
@@ -77,7 +80,7 @@ subroutine UpdateSwimmers
 
    real(8) :: rdot(3), ndot(3), vplus(3), vminus(3), rminus(3), norm
    real(8) :: tumble, ori(3), fran(3), nsq
- 
+
    do i = iplow(myid), ipupp(myid)
 
       rdot(1:3) = 0.0d0
