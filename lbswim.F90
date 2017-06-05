@@ -25,9 +25,9 @@ program LBSwim
 
    implicit none
 
-   real(8) :: usq, starttime, endtime, interval, tdump
-   integer(4) :: uin, uout, ulog, istep, ierr, i, ran_seed(1) 
-   character(40) :: fin, fout, flog, basename, txpath
+   real(8) :: usq, starttime, endtime, interval, tdump, elapsed, rate
+   integer(4) :: uin, uout, ulog, istep, ierr, i, ran_seed(2), istart, iend 
+   character(40) :: fin, fout, flog, fchk, basename, txpath
    logical :: lexists, lmakedir
 
 #if defined (MPI)
@@ -45,7 +45,7 @@ program LBSwim
    nproc = 1
    myid = 0   
    master = .true.
-   call cpu_time(starttime) 
+   call system_clock(istart) 
 #endif  
 
    namelist /nmlRun/ nstep, iseed
@@ -58,17 +58,24 @@ program LBSwim
 
    namelist /nmlIO/ idump, ldumpswim, ldumplat, lformatted, lrestore
  
-   call get_command_argument(1,basename)
-   if (len_trim(basename) == 0) then
-      write(*,*) "ERROR! Syntax: program name + project name"
-      stop
+   if(master) then
+      call get_command_argument(1,basename)
+      if (len_trim(basename) == 0) then
+         write(*,*) "ERROR! Syntax: program name + project name"
+         stop
+      end if
    end if
+#if defined (MPI)
+   call mpi_bcast(basename,40,mpi_character,rootid,comm,ierr)
+#endif
+
    uin   = 1
    uout  = 2
    ulog  = 3
    fin   = trim(basename)//'.in'
    flog  = trim(basename)//'.log'
-   txpath = trim(basename)//'.out'
+   fchk  = trim(basename)//'.chk'
+   txpath = trim(basename)
    interval = 3600.0d0  ! ... Checkpointing interval (seconds)
    startstep = 1
 
@@ -85,6 +92,7 @@ program LBSwim
 #endif
    iseed = iseed + myid          ! ... Ensure each process has its own random seed
    ran_seed(1) = iseed
+   ran_seed(2) = myid
    call random_seed(PUT=ran_seed)
 
    if(master) read(uin,nmlLB)
@@ -108,12 +116,12 @@ program LBSwim
 
    if(master) close(uin)
 
-   inquire(file='checkpoint.out',exist=lexists) 
-   if(lrestore .and. lexists) call RestoreFromCP
+   inquire(file=fchk,exist=lexists) 
+   if(lrestore .and. lexists) call RestoreFromCP(fchk)
 
    call InitParallel
 
-   tdump = starttime
+   if(master) tdump = starttime
    do istep = startstep, nstep
       call UpdateForces
       call Collide
@@ -127,18 +135,22 @@ program LBSwim
          if(master) write(ulog,'(i8,es20.10)') istep, dsqrt(usq)/vswim
          flush(ulog)
       end if
-      call Checkpoint(tdump,interval,istep+1)
+      call Checkpoint(tdump,interval,istep+1,fchk)
    end do
 
 
 #if defined (MPI)
-   if(master) endtime = mpi_wtime()
+   if(master) then
+      endtime = mpi_wtime()
+      elapsed = endtime - starttime
+   end if
 #else
-   call cpu_time(endtime) 
+   call system_clock(iend,rate)
+   elapsed = (iend-istart)/rate
 #endif 
 
    if(master) write(ulog,'(a16,i4)'), trim('Number of tasks:'), nproc
-   if(master) write(ulog,'(a19,f15.3)'), trim('Execution time (s):'), endtime-starttime
+   if(master) write(ulog,'(a19,f15.3)'), trim('Execution time (s):'), elapsed
    if(master) close(ulog)
 
 #if defined (MPI)

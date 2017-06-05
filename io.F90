@@ -166,12 +166,13 @@ end subroutine
 
 ! ... Checks if checkpointing is required
 
-subroutine Checkpoint(tdump,interval,step)
+subroutine Checkpoint(tdump,interval,step,filename)
 
    use LBModule
 
    implicit none
 
+   character(40), intent(in) :: filename
    real(8), intent(inout) :: tdump
    real(8), intent(in)    :: interval, step
    real(8) :: t0
@@ -183,13 +184,13 @@ subroutine Checkpoint(tdump,interval,step)
    if(master .and. (mpi_wtime()-tdump) > interval) lCP = .true.
    call mpi_bcast(lCP,1,mpi_logical,rootid,comm,ierr)
    if(lCP) then
-      call DoCP(step)
+      call DoCP(step,filename)
       if(master) tdump = mpi_wtime()
    end if
 #else 
    call cpu_time(t0)
    if(t0-tdump > interval) then
-      call DoCP(step)
+      call DoCP(step,filename)
       call cpu_time(tdump)
    end if
 #endif      
@@ -204,7 +205,7 @@ end subroutine
 
 ! ... Dumps checkpoint file to disk
 
-subroutine DoCP(step)
+subroutine DoCP(step,filename)
 
    use LBModule
 
@@ -212,10 +213,9 @@ subroutine DoCP(step)
 
    integer(4), intent(in) :: step
 
-   character(30) :: filename
+   character(40), intent(in) :: filename
    integer(4) :: unit, ierr
 
-   filename = 'checkpoint.out'
    unit = 33
 
 #if defined (MPI)
@@ -235,7 +235,7 @@ subroutine DoCP(step)
 
    if(.not. master) return 
 
-   open(unit, file = filename, status = 'unknown', form = 'unformatted', iostat = ierr)
+   open(unit, file = trim(filename), status = 'unknown', form = 'unformatted', iostat = ierr)
    write(unit) step
    write(unit) nx, ny, nz
    write(unit) f(0:14,0:nx-1,0:ny-1,0:nz-1)
@@ -257,20 +257,19 @@ end subroutine
 
 ! ... Restores checkpointed configuration from disk
 
-subroutine RestoreFromCP
+subroutine RestoreFromCP(filename)
 
    use LBModule
 
    implicit none
 
-   character(30) :: filename
+   character(40), intent(in) :: filename
    integer(4) :: unit, ierr
 
-   filename = 'checkpoint.out'
    unit = 33
 
    if(master) then
-      open(unit, file = filename, status = 'unknown', form = 'unformatted', iostat = ierr)
+      open(unit, file = trim(filename), status = 'unknown', form = 'unformatted', iostat = ierr)
       read(unit) startstep
       read(unit) nx, ny, nz
       read(unit) f(0:14,0:nx-1,0:ny-1,0:nz-1)
@@ -298,10 +297,5 @@ subroutine RestoreFromCP
 #endif
 
    if(master) write(*,*) "Restored configuration from checkpoint file"
-!  write(*,*) "Lattice dimensions = ", nx, ny, nz
-!  write(*,*) "Number of swimmers = ", nSwim
-!  write(*,*) "Number of tracers = ", nTrac
-!  write(*,*) "Starting timestep = ", startstep
-   
  
 end subroutine

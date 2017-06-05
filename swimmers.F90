@@ -12,7 +12,7 @@ subroutine InitSwimmers
 
    implicit none
 
-   integer(4) :: i, ierr, buflen
+   integer(4) :: i, ierr, buflen 
    real(8)    :: ori(3), nsq, fran(3)
  
 #if defined (MPI)
