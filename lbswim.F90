@@ -64,7 +64,7 @@ program LBSwim
  
    if(master) then
       call get_command_argument(1,basename)
-      if (len_trim(basename) == 0) then
+      if(len_trim(basename) == 0) then
          write(*,*) "ERROR! Syntax: program name + project name"
          stop
       end if
@@ -79,7 +79,7 @@ program LBSwim
    fin   = trim(basename)//'.in'
    flog  = trim(basename)//'.log'
    fchk  = trim(basename)//'.chk'
-   txpath = trim(basename)
+   txpath = './'//trim(basename)
    interval = 3600.0d0  ! ... Checkpointing interval (seconds)
    startstep = 1
 
