@@ -28,7 +28,6 @@ subroutine InitLattice
       zlen(i) = zupp(i)-zlow(i)+1
    end do
 
-!  allocate(f(0:14,0:nx-1,0:ny-1,0:nz-1))
    allocate(f(0:14,0:nx-1,0:ny-1,0:zlen(myid)+1))   ! ... should hold local f array + halo
    if(master) then
       allocate(fbuf(0:14,0:nx-1,0:ny-1,0:nz-1))     ! ... master needs to collect global f array for output
@@ -176,12 +175,13 @@ subroutine UpdateHydroVars
 
    implicit none
 
-   integer(4) :: i, j, kloc, ierr
+   integer(4) :: i, j, k, kloc, ierr
    
    do kloc = 1, zlen(myid)
+      k = kloc+zlow(myid)-1
       do j = 0, ny-1
          do i = 0, nx-1
-            call CalcHydroSite(i,j,kloc)
+            call CalcHydroSite(i,j,k)
          end do
       end do
    end do
