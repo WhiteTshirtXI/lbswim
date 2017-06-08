@@ -52,7 +52,7 @@ program LBSwim
    cpuup = myid+1
    if(myid == nproc-1) cpuup = 0
 
-   namelist /nmlRun/ nstep, iseed
+   namelist /nmlRun/ nstep, iseed, lcheckpoint
 
    namelist /nmlLB/ nx, ny, nz, eta
 
@@ -93,6 +93,7 @@ program LBSwim
 #if defined (MPI)
    call mpi_bcast(nstep,1,mpi_integer4,rootid,comm,ierr)
    call mpi_bcast(iseed,1,mpi_integer4,rootid,comm,ierr)
+   call mpi_bcast(lcheckpoint,1,mpi_logical,rootid,comm,ierr)
 #endif
    iseed = iseed + myid          ! ... Ensure each process has its own random seed
    ran_seed(1) = iseed
@@ -140,9 +141,10 @@ program LBSwim
          if(master) write(ulog,'(i8,es20.10)') istep, dsqrt(usq)/vswim
          flush(ulog)
       end if
-      call Checkpoint(tdump,interval,istep+1,fchk)
+      if(lcheckpoint) call Checkpoint(tdump,interval,istep+1,fchk)
    end do
 
+   if(lcheckpoint) call Checkpoint(tdump,0.0d0,nstep+1,fchk)  ! ... Do checkpointing of final configuration
 
 #if defined (MPI)
    if(master) then

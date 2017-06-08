@@ -55,7 +55,9 @@ module LBModule
    logical    :: ldumpswim = .false. 
    logical    :: ldumplat = .false.               ! Flags to control data dumping
    logical    :: lformatted = .false.             ! Formatted or unformatted output?
-   logical    :: lrestore = .false.
+   logical    :: lrestore = .false.               ! Restore from checkpoint file?
+   logical    :: lcheckpoint = .true.             ! Toggle checkpointing
+ 
 
    real(8), allocatable :: f(:,:,:,:)         ! Distribution functions
    real(8), allocatable :: force(:,:,:,:)     ! Forces

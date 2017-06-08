@@ -29,11 +29,7 @@ subroutine InitLattice
    end do
 
    allocate(f(0:14,0:nx-1,0:ny-1,0:zlen(myid)+1))   ! ... should hold local f array + halo
-   if(master) then
-      allocate(fbuf(0:14,0:nx-1,0:ny-1,0:nz-1))     ! ... master needs to collect global f array for output
-   else
-      allocate(fbuf(0:14,0:nx-1,0:ny-1,0:zlen(myid)+1)) 
-   end if
+   allocate(fbuf(0:14,0:nx-1,0:ny-1,0:zlen(myid)+1)) 
    allocate(force(1:3,0:nx-1,0:ny-1,0:nz-1)) 
    allocate(u(1:3,0:nx-1,0:ny-1,0:nz-1)) 
    allocate(ubuf(1:3,0:nx-1,0:ny-1,0:nz-1)) 
@@ -116,6 +112,7 @@ subroutine Collide
          end do
       end do
    end do
+
 #if defined (MPI)
    call mpi_isend(f(0:14,0:nx-1,0:ny-1,1), 15*nx*ny,mpi_real8,cpudown,0,comm,sreq1,ierr)
    call mpi_irecv(f(0:14,0:nx-1,0:ny-1,zlen(myid)+1),15*nx*ny,mpi_real8,cpuup,mpi_any_tag,comm,rreq1,ierr)
@@ -125,6 +122,9 @@ subroutine Collide
    call mpi_wait(rreq1,istatus,ierr)
    call mpi_wait(sreq2,istatus,ierr)
    call mpi_wait(rreq2,istatus,ierr)
+#else
+   f(0:14,0:nx-1,0:ny-1,nz+1) = f(0:14,0:nx-1,0:ny-1,1) ! ... Copy to halo to take care of PBCs
+   f(0:14,0:nx-1,0:ny-1,0) = f(0:14,0:nx-1,0:ny-1,nz)
 #endif
 
 end subroutine
@@ -145,6 +145,7 @@ subroutine Stream
 
    integer(4) :: i, j, k, p, imod, jmod, kmod, kloc
 
+
    fbuf(0:14,0:nx-1,0:ny-1,0:zlen(myid)+1) = f(0:14,0:nx-1,0:ny-1,0:zlen(myid)+1) 
    do kloc = 1, zlen(myid)
       do j = 0, ny-1
@@ -152,7 +153,7 @@ subroutine Stream
             do p = 0, 14
                imod = mod((i-ci(1,p)+nx),nx)
                jmod = mod((j-ci(2,p)+ny),ny)
-               kmod = kloc-ci(3,p)
+               kmod = kloc-ci(3,p)  ! ... PBCs taken care of through halo in z-direction
                f(p,i,j,kloc) = fbuf(p,imod,jmod,kmod)
             end do 
          end do
