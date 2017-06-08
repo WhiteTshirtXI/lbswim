@@ -9,9 +9,9 @@ FLAG_SER =-FR -O3 -ipo -no-prec-div -xHost
 
 COMP_PAR = mpiifort      #Aurora
 COMP_PAR = mpif90        #Local machines
-FLAG_PAR = -DMPI -g -traceback -check #Debugging
 FLAG_PAR = -FR -O3 -ipo -no-prec-div -xHost -DMPI -lmpi # Aurora
 FLAG_PAR = -FR -O3 -ipo -no-prec-div -xHost -DMPI -lmpi -lopen-rte -lopen-pal   # Local machines
+FLAG_PAR = -DMPI -g -traceback -check #Debugging
 FLAG_PAR = -FR -O3 -DMPI #Minimal optimization
 
 OBJS_SER=lb_ser.o \

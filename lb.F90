@@ -28,11 +28,17 @@ subroutine InitLattice
       zlen(i) = zupp(i)-zlow(i)+1
    end do
 
-   allocate(f(0:14,0:nx-1,0:ny-1,0:nz-1))
+!  allocate(f(0:14,0:nx-1,0:ny-1,0:nz-1))
+   allocate(f(0:14,0:nx-1,0:ny-1,0:zlen(myid)+1))   ! ... should hold local f array + halo
+   if(master) then
+      allocate(fbuf(0:14,0:nx-1,0:ny-1,0:nz-1))     ! ... master needs to collect global f array for output
+   else
+      allocate(fbuf(0:14,0:nx-1,0:ny-1,0:zlen(myid)+1)) 
+   end if
    allocate(force(1:3,0:nx-1,0:ny-1,0:nz-1)) 
    allocate(u(1:3,0:nx-1,0:ny-1,0:nz-1)) 
+   allocate(ubuf(1:3,0:nx-1,0:ny-1,0:nz-1)) 
    allocate(rho(0:nx-1,0:ny-1,0:nz-1)) 
-   allocate(help(0:14,0:nx-1,0:ny-1,0:nz-1)) 
 
    tau = eta*3.0d0
    omega = 1.0d0/(0.5d0 + tau)
@@ -68,7 +74,7 @@ subroutine InitLattice
 
    ! Initialize DFs
 
-   do k = 0, nz-1
+   do k = 0, zlen(myid)+1
       do j = 0, ny-1
          do i = 0, nx-1
             f(0:14,i,j,k) = w(0:14)
@@ -92,29 +98,30 @@ subroutine Collide
 
    implicit none
 
-   integer(4) :: i, j, k, p
+   integer(4) :: i, j, k, kloc, p
    real(8) :: feq(0:14), phi(0:14)
 #if defined (MPI)
    integer(4) :: ierr, sreq1, sreq2, rreq1, rreq2, istatus(mpi_status_size)
 #endif
 
-   do k = zlow(myid), zupp(myid)
+   do kloc = 1, zlen(myid)
+      k = kloc+zlow(myid)-1
       do j = 0, ny-1
          do i = 0, nx-1
             call CalcHydroSite(i,j,k)
             call CalcEquil(i,j,k,feq)
             call CalcPhi(i,j,k,phi)
             do p = 0, 14
-               f(p,i,j,k) = f(p,i,j,k) - omega*(f(p,i,j,k)-feq(p)) + omega*tau*phi(p)
+               f(p,i,j,kloc) = f(p,i,j,kloc) - omega*(f(p,i,j,kloc)-feq(p)) + omega*tau*phi(p)
             end do
          end do
       end do
    end do
 #if defined (MPI)
-   call mpi_isend(f(0:14,0:nx-1,0:ny-1,zlow(myid)), 15*nx*ny,mpi_real8,cpudown,0,comm,sreq1,ierr)
-   call mpi_irecv(f(0:14,0:nx-1,0:ny-1,zlow(cpuup)),15*nx*ny,mpi_real8,cpuup,mpi_any_tag,comm,rreq1,ierr)
-   call mpi_isend(f(0:14,0:nx-1,0:ny-1,zupp(myid)),   15*nx*ny,mpi_real8,cpuup,0,comm,sreq2,ierr)
-   call mpi_irecv(f(0:14,0:nx-1,0:ny-1,zupp(cpudown)),15*nx*ny,mpi_real8,cpudown,mpi_any_tag,comm,rreq2,ierr)
+   call mpi_isend(f(0:14,0:nx-1,0:ny-1,1), 15*nx*ny,mpi_real8,cpudown,0,comm,sreq1,ierr)
+   call mpi_irecv(f(0:14,0:nx-1,0:ny-1,zlen(myid)+1),15*nx*ny,mpi_real8,cpuup,mpi_any_tag,comm,rreq1,ierr)
+   call mpi_isend(f(0:14,0:nx-1,0:ny-1,zlen(myid)),   15*nx*ny,mpi_real8,cpuup,0,comm,sreq2,ierr)
+   call mpi_irecv(f(0:14,0:nx-1,0:ny-1,0),15*nx*ny,mpi_real8,cpudown,mpi_any_tag,comm,rreq2,ierr)
    call mpi_wait(sreq1,istatus,ierr)
    call mpi_wait(rreq1,istatus,ierr)
    call mpi_wait(sreq2,istatus,ierr)
@@ -137,17 +144,17 @@ subroutine Stream
 
    implicit none
 
-   integer(4) :: i, j, k, p, imod, jmod, kmod
+   integer(4) :: i, j, k, p, imod, jmod, kmod, kloc
 
-   help(0:14,0:nx-1,0:ny-1,0:nz-1) = f(0:14,0:nx-1,0:ny-1,0:nz-1) 
-   do k = zlow(myid), zupp(myid)
+   fbuf(0:14,0:nx-1,0:ny-1,0:zlen(myid)+1) = f(0:14,0:nx-1,0:ny-1,0:zlen(myid)+1) 
+   do kloc = 1, zlen(myid)
       do j = 0, ny-1
          do i = 0, nx-1
             do p = 0, 14
                imod = mod((i-ci(1,p)+nx),nx)
                jmod = mod((j-ci(2,p)+ny),ny)
-               kmod = mod((k-ci(3,p)+nz),nz)
-               f(p,i,j,k) = help(p,imod,jmod,kmod)
+               kmod = kloc-ci(3,p)
+               f(p,i,j,kloc) = fbuf(p,imod,jmod,kmod)
             end do 
          end do
       end do
@@ -169,19 +176,19 @@ subroutine UpdateHydroVars
 
    implicit none
 
-   integer(4) :: i, j, k, ierr
+   integer(4) :: i, j, kloc, ierr
    
-   do k = zlow(myid), zupp(myid)
+   do kloc = 1, zlen(myid)
       do j = 0, ny-1
          do i = 0, nx-1
-            call CalcHydroSite(i,j,k)
+            call CalcHydroSite(i,j,kloc)
          end do
       end do
    end do
 
 #if defined (MPI)
-   call mpi_allgatherv(u(1:3,0:nx-1,0:ny-1,zlow(myid):zupp(myid)),3*nx*ny*zlen(myid),mpi_real8,help(1:3,0:nx-1,0:ny-1,0:nz-1),3*nx*ny*zlen(0:nproc-1),3*nx*ny*zlow(0:nproc-1),mpi_real8,comm,ierr)
-   u(1:3,0:nx-1,0:ny-1,0:nz-1) = help(1:3,0:nx-1,0:ny-1,0:nz-1)
+   call mpi_allgatherv(u(1:3,0:nx-1,0:ny-1,zlow(myid):zupp(myid)),3*nx*ny*zlen(myid),mpi_real8,ubuf(1:3,0:nx-1,0:ny-1,0:nz-1),3*nx*ny*zlen(0:nproc-1),3*nx*ny*zlow(0:nproc-1),mpi_real8,comm,ierr)
+   u(1:3,0:nx-1,0:ny-1,0:nz-1) = ubuf(1:3,0:nx-1,0:ny-1,0:nz-1)
 #endif
 
 end subroutine
@@ -217,8 +224,8 @@ subroutine UpdateForces
    end do
 
 #if defined (MPI)
-   call mpi_allreduce(force(1:3,0:nx-1,0:ny-1,0:nz-1),help(1:3,0:nx-1,0:ny-1,0:nz-1),3*nx*ny*nz,mpi_real8,mpi_sum,comm,ierr)
-   force(1:3,0:nx-1,0:ny-1,zlow(myid):zupp(myid)) = help(1:3,0:nx-1,0:ny-1,zlow(myid):zupp(myid))
+   call mpi_allreduce(force(1:3,0:nx-1,0:ny-1,0:nz-1),ubuf(1:3,0:nx-1,0:ny-1,0:nz-1),3*nx*ny*nz,mpi_real8,mpi_sum,comm,ierr)
+   force(1:3,0:nx-1,0:ny-1,zlow(myid):zupp(myid)) = ubuf(1:3,0:nx-1,0:ny-1,zlow(myid):zupp(myid))
 #endif
 
 !  call mpi_reduce(force(1:3,0:nx-1,0:ny-1,0:nz-1),help(1:3,0:nx-1,0:ny-1,0:nz-1),3*nx*ny*nz,mpi_real8,mpi_sum,rootid,comm,ierr)
@@ -316,16 +323,18 @@ subroutine CalcHydroSite(i,j,k)
    implicit none
 
    integer(4), intent(in) :: i, j, k
-   integer(4) :: p, d
+   integer(4) :: p, d, kloc
 
    real(8) :: mom(1:3), rholoc 
+
+   kloc = k-zlow(myid)+1
 
    rholoc = 0.0d0
    mom(1:3) = 0.5d0*force(1:3,i,j,k)
    do p = 0, 14
-      rholoc = rholoc + f(p,i,j,k)
+      rholoc = rholoc + f(p,i,j,kloc)
       do d = 1, 3
-         mom(d) = mom(d) + f(p,i,j,k)*ci(d,p)
+         mom(d) = mom(d) + f(p,i,j,kloc)*ci(d,p)
       end do
    end do 
           

@@ -61,7 +61,8 @@ module LBModule
    real(8), allocatable :: force(:,:,:,:)     ! Forces
    real(8), allocatable :: u(:,:,:,:)         ! Fluid velocity
    real(8), allocatable :: rho(:,:,:)         ! Density
-   real(8), allocatable :: help(:,:,:,:)      ! Temporary array (should hold f)
+   real(8), allocatable :: fbuf(:,:,:,:)      ! Temporary array (should hold f)
+   real(8), allocatable :: ubuf(:,:,:,:)      ! Temporary array (should hold u)
    real(8), allocatable :: rbuf(:,:)          ! Temporary array (should hold r)
 
    real(8), allocatable :: r(:,:)         ! swimmer positions

@@ -180,8 +180,7 @@ subroutine DoCP(step,filename)
    unit = 33
 
 #if defined (MPI)
-   call mpi_gatherv(f(0:14,0:nx-1,0:ny-1,zlow(myid):zupp(myid)),15*nx*ny*zlen(myid),mpi_real8,help(0:14,0:nx-1,0:ny-1,0:nz-1),15*nx*ny*zlen(0:nproc-1),15*nx*ny*zlow(0:nproc-1),mpi_real8,rootid,comm,ierr)
-   if(master) f(0:14,0:nx-1,0:ny-1,0:nz-1) = help(0:14,0:nx-1,0:ny-1,0:nz-1)  
+   call mpi_gatherv(f(0:14,0:nx-1,0:ny-1,1:zlen(myid)),15*nx*ny*zlen(myid),mpi_real8,fbuf(0:14,0:nx-1,0:ny-1,0:nz-1),15*nx*ny*zlen(0:nproc-1),15*nx*ny*zlow(0:nproc-1),mpi_real8,rootid,comm,ierr)
    call mpi_gatherv(r(1:3,iplow(myid):ipupp(myid)),3*iplen(myid),mpi_real8,rbuf(1:3,1:nSwim),3*iplen(0:nproc-1),3*(iplow(0:nproc-1)-1),mpi_real8,rootid,comm,ierr)
    if(master) r(1:3,1:nSwim) = rbuf(1:3,1:nSwim)
    call mpi_gatherv(n(1:3,iplow(myid):ipupp(myid)),3*iplen(myid),mpi_real8,rbuf(1:3,1:nSwim),3*iplen(0:nproc-1),3*(iplow(0:nproc-1)-1),mpi_real8,rootid,comm,ierr)
@@ -199,7 +198,7 @@ subroutine DoCP(step,filename)
    open(unit, file = trim(filename), status = 'unknown', form = 'unformatted', iostat = ierr)
    write(unit) step
    write(unit) nx, ny, nz
-   write(unit) f(0:14,0:nx-1,0:ny-1,0:nz-1)
+   write(unit) fbuf(0:14,0:nx-1,0:ny-1,0:nz-1)
    write(unit) nSwim
    write(unit) r(1:3,1:nSwim) 
    write(unit) n(1:3,1:nSwim)
@@ -233,7 +232,7 @@ subroutine RestoreFromCP(filename)
       open(unit, file = trim(filename), status = 'unknown', form = 'unformatted', iostat = ierr)
       read(unit) startstep
       read(unit) nx, ny, nz
-      read(unit) f(0:14,0:nx-1,0:ny-1,0:nz-1)
+      read(unit) fbuf(0:14,0:nx-1,0:ny-1,0:nz-1)
       read(unit) nSwim
       read(unit) r(1:3,1:nSwim) 
       read(unit) n(1:3,1:nSwim)
